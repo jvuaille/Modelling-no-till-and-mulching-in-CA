@@ -1,0 +1,219 @@
+(input file "pesticides_exp.dai")
+
+(defunit [L/ha/h] SIfactor
+  (length 1)
+  (time -1)
+  (factor 2.778e-11))
+
+;; define AOM pools
+(defAOM RDM component
+  ;; C/N ratio
+  (C_per_N 31.25) ; 1/0.032 (Garnier et al., 2003) table 2
+  ;; Turnover 
+  (turnover_rate 0.25 [d^-1]) ; (Garnier et al., 2003) 
+  ;; Solubilization, no CO2 emissions
+  (efficiency 100 [%])
+  ;; Partition to SMB1, SMB2 (or DOM in mulch) or SOM (humus)
+  (fractions 0 100 0 [%]))
+
+(defAOM HCE component
+  ;; C/N ratio
+  (C_per_N 34.48) ; 1/0.029 (Garnier et al., 2003) table 2
+  ;; Turnover 
+  (turnover_rate 0.0280 [d^-1]) ; (Iqbal et al., 2014) 15 deg C. 
+  ;; Solubilization, no CO2 emissions
+  (efficiency 100 [%])
+  ;; Partition to SMB1, SMB2 (or DOM in mulch) or SOM (humus)
+  (fractions 0 100 0 [%]))
+
+(defAOM CEL component
+  ;; C/N ratio
+  (C_per_N 100) ; 1/0 (Garnier et al., 2003) table 2      
+  ;; Turnover 
+  (turnover_rate 0.0280 [d^-1]) ; (Iqbal et al., 2014)
+  ;; Solubilization, no CO2 emissions
+  (efficiency 100 [%])
+  ;; Partition to SMB1, SMB2 (or DOM in mulch) or SOM (humus)
+  (fractions 0 100 0 [%]))
+
+(defAOM LIG component
+;; We don't specify C/N ratio for one pool, it will get the "remaining N".
+  ;; Turnover 
+  (turnover_rate 0.0052 [d^-1]) ; (Iqbal et al., 2014) 15 deg C. 
+  ;; Solubilization, no CO2 emissions
+  (efficiency 100 [%])
+  ;; Partition to SMB1, SMB2 (or DOM in mulch) or SOM (humus)
+  (fractions 0 99.99 0.01 [%])) ; (Garnier et al., 2003) table 1 (T=15 degC)
+
+(defam InitLitter organic
+  ;; Individual AOM pools.
+  ;; 0.63 of maize, 0.37 of dolichos (Aslam et al. 2018 p.56)
+  (om (RDM (initial_fraction 26.5 [%])) ; =32.8 0.63*0.388 + 0.37*0.227 (Iqbal et al. 2012 table 1)
+      (HCE (initial_fraction 35.3 [%])) ; =19.9 0.63*0.19 + 0.37*0.215
+      (CEL (initial_fraction 11.9 [%])) ; =34.2 0.63*0.314 + 0.37*0.390
+      ;; The remaining 30 (= 100 - 30 - 20 - 20) % goes here.
+      (LIG))
+
+  ;; Total C and N relative to dry matter.
+  (total_N_fraction 0.38 [%])
+  (total_C_fraction 46 [%]) ; C/N = 119.76 vs 119.65 = 0.63 * 158.5 + 0.37 * 53.5 (Iqbal et al. 2012 table 1)
+  ;; No loss.
+  (volatilization 0 [%])
+  ;; No water.
+  (dry_matter_fraction 100 [%])
+  ;; No mineral N.
+  (NO3_fraction 0 [%])
+  (NH4_fraction 0 [%]))
+  
+  
+(defaction LFR activity
+  (wait_mm_dd 12 31)
+  (fertilize (InitLitter (weight 0.758 [kg/m^2])))
+  (irrigate_overhead 1500 [L/ha/h] ;pre-humection of mulch ~0.2 mm
+        (remaining_time 0.4 [h]))
+  (wait_mm_dd 1 1)
+  (irrigate_overhead 32332 [L/ha/h]
+      (remaining_time 0.16667 [h])
+      (solute (glyphosate 240 [ppm])
+	      (s-metolachlor 193 [ppm]))) 
+  (wait_hours 3) 
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))  
+  
+  (wait_mm_dd 1 4)   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 1 8
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 1 11
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 1 15
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 1 18
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 1 22
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 1 25
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 1 29
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 2 1
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 2 5
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 2 8
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 2 10
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 2 15
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 2 19
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 2 22
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 2 26
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 3 1
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 3 5
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 3 8
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 3 12
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 3 15
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 3 17
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h]))
+  (wait_mm_dd 3 21
+          )   
+  (irrigate_overhead 60000 [L/ha/h]
+        (remaining_time 0.334 [h])))
+
+(defaction HIR activity
+
+  (wait_mm_dd 12 31)
+  (fertilize (InitLitter (weight 0.758 [kg/m^2])))
+  (irrigate_overhead 1500 [L/ha/h] ;pre-humection of mulch ~0.2 mm
+        (remaining_time 0.4 [h]))
+  (wait_mm_dd 1 1)  
+  (irrigate_overhead 32332 [L/ha/h]
+      (remaining_time 0.16667 [h])
+      (solute (glyphosate 240 [ppm])
+	      (s-metolachlor 193 [ppm])))
+  (wait_hours 3)
+  (irrigate_overhead 200000 [L/ha/h]
+        (remaining_time 0.4 [h]))
+        
+  (wait_mm_dd 1 15
+          )
+  (irrigate_overhead 200000 [L/ha/h]
+        (remaining_time 0.4 [h]))
+  (wait_mm_dd 1 28
+          )
+  (irrigate_overhead 200000 [L/ha/h]
+        (remaining_time 0.4 [h]))
+  (wait_mm_dd 2 11
+          )
+  (irrigate_overhead 200000 [L/ha/h]
+        (remaining_time 0.4 [h]))
+   (wait_mm_dd 2 26
+          )
+  (irrigate_overhead 200000 [L/ha/h]
+        (remaining_time 0.4 [h]))
+  (wait_mm_dd 3 11
+          )
+  (irrigate_overhead 200000 [L/ha/h]
+        (remaining_time 0.4 [h])))
+  	
+  
+   
+(defaction "Sim_col_exp_HIR" activity
+    "HIR" )
+      
+  
+(defaction "Sim_col_exp_LFR" activity
+    "LFR" )  
+  

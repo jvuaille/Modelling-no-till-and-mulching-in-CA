@@ -1,0 +1,40 @@
+(input file "chemistry-base.dai")
+
+;; Data from Aslam et al. (2015)
+(defchemical s-metolachlor classic
+  (molar_mass 283.8 [g/mol]) 
+  (surface_decompose_halftime 13.6 [d]) 
+  (enable_surface_products true)
+  (soil_affects_surface_decompose true) 
+  (decompose_halftime 13.6 [d]) ; 
+  (litter_decompose_halftime 13.6 [d]) 
+  (adsorption linear (K_d 35.6 [mL/g])) 
+  (decompose_SMB_pool 1) ; SMB2
+  (decompose_SMB_KM 0.000455 [g C/cm^3]) 
+  (litter_washoff_coefficient 0 []) 
+  (litter_diffusion_rate 0.5 [h^-1])
+  (T_ref 20 [dg C])
+  (SMB_ref 0.000455 [g C/cm^3])) 
+
+(defchemical glyphosate classic 
+  (molar_mass 169.1 [g/mol])
+  (surface_decompose_halftime 71 [d])
+  (enable_surface_products true)
+  (soil_affects_surface_decompose true) 
+  (decompose_halftime 71 [d]) 
+  (litter_decompose_halftime 71 [d])  
+  (adsorption linear (K_d 186.1 [mL/g])) 
+  (decompose_SMB_pool 1) ; SMB2
+  (decompose_SMB_KM 0.000455 [g C/cm^3]) ;
+  (litter_washoff_coefficient 0 []) 
+  (litter_diffusion_rate 1.2 [h^-1])
+  (T_ref 20 [dg C])
+  (SMB_ref 0.000455 [g C/cm^3])) 
+
+
+(defchemistry glyphosate default
+  (trace glyphosate ))
+  	 
+(defchemistry s-metolachlor default
+  (trace s-metolachlor ))
+

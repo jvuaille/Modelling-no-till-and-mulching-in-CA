@@ -1,0 +1,1114 @@
+;;; log-mulch.dai -- Log parameterization for mulch module.
+
+(deflog "DOM h factor" column
+  (where "${colfid}DOM-h-factor.dlf")
+  (when hourly)
+  (entries (array (path column "${column}" Chemistry "*"
+			combine "DOM" reaction DOM_turnover h_factor)
+		  (spec reaction DOM_turnover h_factor)
+		  (handle average))))
+
+(deflog "DOM T factor" column
+  (where "${colfid}DOM-T-factor.dlf")
+  (when hourly)
+  (entries (array (path column "${column}" Chemistry "*"
+			combine "DOM" reaction DOM_turnover T_factor)
+		  (spec reaction DOM_turnover T_factor)
+		  (handle average))))
+
+(deflog "DOM N factor" column
+  (where "${colfid}DOM-N-factor.dlf")
+  (when hourly)
+  (entries (array (path column "${column}" Chemistry "*"
+			combine "DOM" reaction DOM_turnover N_factor)
+		  (spec reaction DOM_turnover N_factor)
+		  (handle average))))
+
+(defsummary "Mulch Stationary Nitrogen" balance
+  (precision 3)
+  (input "Residuals N" "Fertilized N")
+  (output "Tillage N" "Bioincorporation N" "SON_gen" "DON_gen")
+  (content "Organic N"))
+
+(defsummary "DON" balance
+  (precision 3)
+  (output NH4-Gen NO3-Gen SON-Gen)
+  (input DON-Immobilization)
+  (content))
+
+(defsummary "DOC" balance
+  (precision 3)
+  (output CO2-Gen SOC-Gen)
+  (input DOC-Removed)
+  (content))
+
+(deflog Mulch column
+  (where "${colfid}mulch.dlf")
+  (when hourly)
+  (summary "Mulch Stationary Nitrogen" DON DOC)
+  (entries (number (path column "${column}" Litter residue mass)
+		   (dimension [Mg DM/ha])
+		   (tag "mass_MG")
+		   (spec litter residue mass))
+	   (number (path column "${column}" Litter residue mass)
+		   (dimension [kg DM/m^2])
+		   (spec litter residue mass))
+	   (number (path column "${column}" Litter residue cover)
+		   (spec litter residue cover))
+	   (number (path column "${column}" Litter mulch height)
+		   (dimension [mm])
+		   (spec litter mulch height))
+	   (number (path column "${column}" Litter mulch contact)
+		   (dimension [%])
+		   (spec litter mulch contact))
+	   (number (path column "${column}" Litter mulch water)
+		   (dimension [mm])
+		   (spec litter mulch water))
+	   (number (path column "${column}" Litter mulch Theta)
+		   (dimension [%])
+		   (spec litter mulch Theta))
+	   (number (path column "${column}" Litter mulch h)
+		   (tag "h_pF")
+		   (dimension [pF])
+		   (spec litter mulch h))
+	   (number (path column "${column}" Litter mulch h)
+		   (dimension [cm])
+		   (spec litter mulch h))
+	   (number (path column "${column}" Litter mulch h1)
+		   (dimension [cm])
+		   (spec litter mulch h1))
+	   (number (path column "${column}" Litter mulch h_soil)
+		   (dimension [cm])
+		   (spec litter mulch h_soil))
+	   (number (path column "${column}" Litter mulch K_soil)
+		   (dimension [cm/h])
+		   (spec litter mulch K_soil))
+	   (number (path column "${column}" Litter mulch E_darcy)
+		   (dimension [mm/h])
+		   (spec litter mulch E_darcy))
+	   (number (path column "${column}" Litter mulch h_factor)
+		   (spec litter mulch h_factor))
+	   (number (path column "${column}" Litter mulch T)
+		   (spec litter mulch T))
+	   (number (path column "${column}" Litter mulch T_factor)
+		   (spec litter mulch T_factor))
+	   (number (path column "${column}" Litter mulch SMB_C)
+		   (spec litter mulch SMB_C))
+	   (number (path column "${column}" Litter mulch SMB_factor)
+		   (spec litter mulch SMB_factor))
+	   (number (path column "${column}" Litter mulch DOC_gen)
+		   (dimension [kg DM/ha])
+		   (handle sum)
+		   (spec litter mulch DOC_gen))
+	   (number (path column "${column}" Litter mulch DON_gen)
+		   (dimension [kg N/ha])
+		   (handle sum)
+		   (spec litter mulch DON_gen))
+	   (number (path column "${column}" Litter mulch SOC_gen)
+		   (dimension [kg DM/ha])
+		   (handle sum)
+		   (spec litter mulch SOC_gen))
+	   (number (path column "${column}" Litter mulch SON_gen)
+		   (dimension [kg N/ha])
+		   (handle sum)
+		   (spec litter mulch SON_gen))
+	   (interval (path column "${column}" OrganicMatter "*" tillage_N_soil)
+                     (spec organic default tillage_N_soil)
+                     (handle sum)
+                     (documentation "\
+Nitrogen in organic matter removed from mulch by tillage operations.")
+                     (tag "Tillage N")
+                     (dimension [kg N/ha]))
+           (interval (path column "${column}" OrganicMatter "*"
+                           Bioincorporation N_added)
+                     (spec fixed Bioincorporation N_added)
+                     (documentation "\
+Nitrogen in organic matter removed from mulch bu bioincroporation.
+
+This includes dead leaves removed from the mulch by earthworms.")
+                     (tag "Bioincorporation N")
+                     (handle sum)
+                     (dimension [kg N/ha]))
+           (number (path column "${column}" residuals_N_top)
+                   (spec column default residuals_N_top)
+                   (handle sum)
+                   (documentation "\
+Nitrogen added by above ground plant residuals.
+
+This includes both exfoiliation during crop growth, and any above
+ground residuals left after harvest.")
+                   (tag "Residuals N")
+                   (dimension [kg N/ha]))
+           (number (tag "Organic N")
+		   (documentation "\
+Nitrogen content of organic material on the soil surface.
+
+This does not include nitrogen in the crop.")
+                   (path column "${column}"
+			 OrganicMatter "*" am "*" om "*" top_N)
+                   (spec AOM component top_N)
+                   (dimension [kg N/ha]))
+           (number (path column "${column}" OrganicMatter "*" fertilized_N)
+                   (spec organic default fertilized_N)
+                   (handle sum)
+                   (documentation "\
+Organically bound nitrogen supplied by fertilizers.")
+                   (tag "Fertilized N")
+                   (dimension [kg N/ha]))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover DON)
+                     (spec reaction DOM_turnover DON)
+                     (documentation "\
+DON-N removed by the DOM turnover processes.")
+                     (tag "DON-Immobilization")
+                     (handle sum)
+                     (dimension [kg N/ha]))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover NH4)
+                     (spec reaction DOM_turnover NH4)
+                     (documentation "\
+NH4-N generated by the DOM turnover processes.")
+                     (tag "NH4-Gen")
+                     (handle sum)
+                     (dimension [kg N/ha]))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover NO3)
+                     (spec reaction DOM_turnover NO3)
+                     (documentation "\
+NO3-N generated by the DOM turnover processes.")
+                     (tag "NO3-Gen")
+                     (handle sum)
+                     (dimension [kg N/ha]))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover CO2)
+                     (spec reaction DOM_turnover CO2)
+                     (documentation "\
+CO2-C generated by the DOM turnover processes.")
+                     (tag "CO2-Gen")
+                     (handle sum)
+                     (dimension [kg N/ha]))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover DOC)
+                     (spec reaction DOM_turnover DOC)
+                     (documentation "\
+DOC-C removed by the DOM turnover processes.")
+                     (tag "DOC-Removed")
+                     (handle sum)
+                     (dimension [kg N/ha]))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover SON)
+                     (spec reaction DOM_turnover SON)
+                     (documentation "\
+SON-C generated by the DOM turnover processes.")
+                     (tag "SON-Gen")
+                     (handle sum)
+                     (dimension [kg N/ha]))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover SOC)
+                     (spec reaction DOM_turnover SOC)
+                     (documentation "\
+SOC-C generated by the DOM turnover processes.")
+                     (tag "SOC-Gen")
+                     (handle sum)
+                     (dimension [kg N/ha]))
+
+	   ))
+
+(defsummary "Field nitrogen balance D" N_balance
+  "Nitrogen balance for the complete system."
+  (require_top true)
+  (input "Min-Surface-Fertilizer"
+         "Min-Soil-Fertilizer"
+	 "Org-Fertilizer"
+         "Deposition"
+         Fixated "Seed")
+  (output "N2O-Nitrification" "Denitrification"
+          "Matrix-Leaching" "Biopore-Leaching"
+          "Soil-Drain" "Biopore-Drain"
+          "Surface-Loss"
+	  "Litter-Dissolve"
+          "Harvest")
+  (content "Min-Surface" "Min-Soil" "Min-Biopores"
+	   "Org-Surface" "Org-Soil" "Crop"))
+
+(defsummary "Field mineral nitrogen balance D" balance
+  "Mineral balance for the complete system."
+  (precision 3)
+  (require_top true)
+  (input "Min-Surface-Fertilizer" "Min-Soil-Fertilizer"
+	 "Deposition" "Mineralization")
+  (output "Immobilization" "Matrix-Leaching" "Biopore-Leaching"
+          "Soil-Drain" "Biopore-Drain" 
+          "Surface-Loss" "Crop-Uptake"
+          "N2O-Nitrification" "Denitrification" "DOM-Stabilization")
+  (content "Min-Surface" "Min-Soil" "Min-Biopores"))
+
+(defsummary "Field organic nitrogen balance D" N_balance
+  "Organic nitrogen balance for the complete system."
+  (require_top true)
+  (input "Residuals-Surface" "Residuals-Soil" "Org-Fertilizer"
+         "Immobilization" "DOM-Stabilization")
+  (output "Mineralization" "Litter-Dissolve")
+  (content "Org-Surface" "Org-Soil"))
+
+(deflog "Field nitrogen D" column
+  "Nitrogen input, output, transformation and content for the system.
+
+The intended use of this log is large scale nitrogen balance, for
+example reservoir management. It provide information about how
+much nitrogen is in the field (down to a specified depth), where
+it is located in the field (surface, soil matrix or in biopores),
+what form is has (crop, soil organic matter, or mineral) as well
+as the sources, sinks and amounts of nitrogen entering or leaving
+the system, and transformation between the four forms.  It does
+not provide information about internal translocation of nitrogen
+between surface, soil matrix and biopores, use see the 'Soil
+nitrogen' log instead for that.
+
+Note that dissolved organic nitrogen (if present) is counted as part of
+the mineral nitrogen balance, not the organic nitrogen balance.
+
+For the balances of this log to work, you must include the entire
+root zone."
+  (declare unit String "Base unit.")
+  (unit "kg N/ha")
+  (where "${colfid}field_nitrogen.dlf")
+  (summary "Field nitrogen balance D" "Field mineral nitrogen balance D" 
+           "Field organic nitrogen balance D" "Field crop nitrogen balance")
+  (when hourly)
+  (entries (number (path column "${column}" 
+			 Chemistry "*" trace N spray)
+                   (spec chemical default spray)
+		   (handle sum)
+                   (documentation "\
+Mineral fertilizer added above the soil surface.")
+                   (tag "Min-Surface-Fertilizer")
+                   (dimension "${unit}"))
+           (interval (path column "${column}"
+			   Chemistry "*" trace N S_external)
+                     (spec chemical default S_external)
+                     (documentation "\
+Mineral fertilizer incorporated into the soil.")
+                     (tag "Min-Soil-Fertilizer")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (number (path column "${column}" 
+			 Chemistry "*" trace N deposit)
+                   (spec chemical default deposit)
+                   (handle sum)
+                   (documentation "\
+Nitrogen added to the soil surface as atmospheric deposition.")
+                   (tag "Deposition")
+                   (dimension "${unit}"))
+           (flux_bottom (path column "${column}"
+			      Chemistry "*" trace N J_matrix)
+                        (spec chemical default J_matrix)
+                        (handle sum)
+                        (negate true)
+                        (documentation "\
+Loss from leaching through the soil matrix below the specified depth.  
+This can be negative in case of cabilary rise.")
+                        (tag "Matrix-Leaching")
+                        (dimension "${unit}"))
+           (flux_bottom (path column "${column}"
+			      Chemistry "*" trace N J_tertiary)
+                        (spec chemical default J_tertiary)
+                        (handle sum)
+                        (negate true)
+                        (documentation "\
+Loss from leaching through biopores below the specified depth.")
+                        (tag "Biopore-Leaching")
+                        (dimension "${unit}"))
+           (interval (path column "${column}"
+			   Chemistry "*" trace N S_soil_drain)
+                     (spec chemical default S_soil_drain)
+                     (documentation "\
+Loss of nitrogen from the soil matrix to drain pipes.")
+                     (tag "Soil-Drain")
+                     (handle sum)
+                     (negate true)
+                     (dimension "${unit}"))
+           (interval (path column "${column}"
+			   Chemistry "*" trace N S_p_drain)
+                     (spec chemical default S_p_drain)
+                     (documentation "\
+Loss of nitrogen from the biopores to drain pipes.")
+                     (tag "Biopore-Drain")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (number (path column "${column}" 
+			 Chemistry "*" trace N top_loss)
+                   (spec chemical default top_loss)
+                   (handle sum)
+                   (documentation "\
+Loss of mineral nitrogen stored above surface.
+
+This includes volatililzation, surface runoff, mineral nitrogen on
+leaves removed at harvest, and chemical transformations.
+It also includes litter dissolution (Litter-Dissolve) as a negative
+contribution.")
+                   (tag "Surface-Loss")
+                   (dimension "${unit}"))
+           (number (path column "${column}" 
+			 Chemistry "*" trace DON litter_transform)
+                   (spec chemical default litter_transform)
+                   (handle sum)
+                   (documentation "\
+Litter converted into dissolved organic nitrogen (DON).")
+                   (tag "Litter-Dissolve")
+                   (dimension "${unit}"))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover SON)
+                     (spec reaction DOM_turnover SON)
+                     (documentation "\
+Stationary-N added by the DOM turnover processes.")
+                     (tag "DOM-Stabilization")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (number (path column "${column}" 
+			 Chemistry "*" trace N top_storage)
+                   (spec chemical default top_storage)
+                   (documentation "\
+Mineral nitrogen stored above the soil surface.
+This includes leaves, ponded water, etc.")
+                   (tag "Min-Surface")
+                   (dimension "${unit}"))
+           (interval (path column "${column}"
+			   Chemistry "*" trace N M)
+                     (spec chemical default M)
+                     (documentation "\
+Mineal nitrogen stored in the soil matrix.")
+                     (tag "Min-Soil")
+                     (dimension "${unit}"))
+           (interval (path column "${column}"
+			   Chemistry "*" trace N M_tertiary)
+                     (spec chemical default M_tertiary)
+                     (documentation "\
+Mineal nitrogen stored in the biopores.")
+                     (tag "Min-Biopores")
+                     (dimension "${unit}"))
+           (interval (path column "${column}"
+			   Chemistry "*" trace N M_error)
+                     (spec chemical default M_error)
+                     (documentation "\
+Mineral nitrogen 'borrowed from the future'. 
+
+This can be non-zero if the processes that remove nitrogen from some
+place in the soil are fast compared to the timestep.  If this
+happens, you should rerun the simulation withh a shorter
+timestep. Or readjust the system to slow down those processes
+that remove mineral nitrogen.")
+                     (tag "Error")
+                     (dimension "${unit}"))
+           (interval (path column "${column}" OrganicMatter "*" NH4_source)
+                     (spec organic default NH4_source)
+                     (documentation "\
+NH4 produced in the soil matrix by mineralization of organic matter.")
+                     (tag "Mineralization")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (interval (path column "${column}" OrganicMatter "*" NO3_source)
+                     (spec organic default NO3_source)
+                     (documentation "\
+NO3 immobilized as a result of organic matter turnover.")
+                     (tag "Immobilization")
+                     (negate true)
+                     (handle sum)
+                     (dimension "${unit}"))
+           (interval (path column "${column}"
+                           Chemistry "*" trace N S_root)
+                     (spec chemical default S_root)
+                     (documentation "\
+Nitrogen uptake by the roots.")
+                     (tag "Crop-Uptake")
+                     (negate true)
+                     (handle sum)
+                     (dimension "${unit}"))
+           (number (path column "${column}" 
+			 Chemistry "*" trace NH4 surface_decompose)
+                   (spec chemical default surface_decompose)
+                   (handle sum)
+                   (documentation "\
+NH4-fertilizer lost during the application.")
+                   (tag "Volatilization")
+                   (dimension "${unit}"))
+	   (interval (path column "${column}" Chemistry "*"
+                           combine "N" reaction nitrification N2O)
+                     (documentation "\
+N2O production in the soil matrix due to nitrification.
+
+The N2O produced is assumed to escape to the atmosphere, and will
+not be traced by the model.")
+                     (tag "N2O-Nitrification")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec reaction nitrification N2O))
+	   (interval (path column "${column}" Chemistry "*"
+                           combine "N" reaction denitrification converted)
+                     (documentation "\
+Loss of NO3 due to denitrification.")
+                     (tag "Denitrification")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec reaction denitrification converted))
+           (number (tag Fixated)
+                   (path column "${column}"
+			 Vegetation component N_fixated)
+                   (documentation "\
+Atmospheric nitrogen fixated by the crop.")
+                   (spec vegetation component N_fixated)
+                   (handle sum)
+                   (dimension "${unit}"))
+           (number (path column "${column}" OrganicMatter "*" fertilized_N)
+                   (spec organic default fertilized_N)
+                   (handle sum)
+                   (documentation "\
+Organically bound nitrogen supplied by fertilizers.")
+                   (tag "Org-Fertilizer")
+                   (dimension "${unit}"))
+           (number (path column "${column}" seed_N)
+                   (spec column default seed_N)
+                   (handle sum)
+                   (documentation "\
+Nitrogen supplied in seeds when sowing.")
+                   (tag "Seed")
+                   (dimension "${unit}"))
+           (number (path column "${column}" harvest_N)
+                   (spec column default harvest_N)
+                   (handle sum)
+                   (documentation "\
+Nitrogen removed as part of the harvest.")
+                   (tag "Harvest")
+                   (dimension "${unit}"))
+           (number (path column "${column}" residuals_N_top)
+                   (spec column default residuals_N_top)
+                   (handle sum)
+                   (documentation "\
+Above ground plant residuals.
+
+This includes both exfoiliation during crop growth, and any above
+ground residuals left after harvest.")
+                   (tag "Residuals-Surface")
+                   (dimension "${unit}"))
+           (number (path column "${column}" residuals_N_root)
+                   (spec column default residuals_N_root)
+                   (handle sum)
+                   (documentation "\
+Below ground plant residuals.
+
+This includes root death and rhizodeposition during plant growth,
+as well as the roots left after harvest.")
+                   (tag "Residuals-Soil")
+                   (dimension "${unit}"))
+           (number (tag "Org-Surface")
+                     (documentation "\
+Nitrogen content of organic material on the soil surface.
+
+This does not include nitrogen in the crop.")
+                   (path column "${column}"
+			 OrganicMatter "*" am "*" om "*" top_N)
+                   (spec AOM component top_N)
+                   (dimension "${unit}"))
+           (interval (tag "Org-Soil")
+                     (documentation "\
+Nitrogen content of organic material below the soil surface.
+
+This does not include nitrogen in living roots.")
+                     (path column "${column}" OrganicMatter "*" total_N)
+                     (spec organic default total_N)
+                     (dimension "${unit}"))
+           (number (tag "Crop")
+                   (documentation "\
+Nitrogen content of the crop, excluding dead leaves.")
+                   (path column "${column}" Vegetation component N)
+                   (spec vegetation component N)
+                   (dimension "${unit}"))))
+
+(defsummary "Soil DON balance D" N_balance
+  "Dissolved organic nitrogen balance for a soil interval."
+  (input "DON-Matrix-In" "DON-Incorp" "DON-Tillage")
+  (output "DON-Leak-Matrix" "DON-Leak-Biopore" 
+	  "DON-Soil-Drain" "DON-Biopore-Drain"
+	  "DON-Turnover")
+  (content "DON-Soil" "DON-Biopores"))
+
+(defsummary "Soil NO3- balance D" N_balance
+  "NO3- balance for a soil interval."
+  (input "NO3-Matrix-In" "NO3-Biopore-In" "NO3-Incorp" "NO3-Tillage"
+	 "NO3-Nitrification" "DON2NO3")
+  (output "NO3-Leak-Matrix" "NO3-Leak-Biopore" 
+	  "NO3-Soil-Drain" "NO3-Biopore-Drain"
+	  "NO3-Uptake" "Denitrification" "NO3-Immobilization")
+  (content "NO3-Soil" "NO3-Biopores"))
+
+(defsummary "Soil NH4+ balance D" N_balance
+  "NH4+ balance for a soil interval."
+  (input "NH4-Matrix-In" "NH4-Biopore-In" "NH4-Incorp" "NH4-Tillage"
+	 "NH4-Mineralization" "DON2NH4")
+  (output "NH4-Leak-Matrix" "NH4-Leak-Biopore" 
+	  "NH4-Soil-Drain" "NH4-Biopore-Drain"
+	  "NH4-Uptake"  "NH4-Nitrification")
+  (content "NH4-Soil" "NH4-Biopores"))
+
+
+(defsummary "Soil mineral-N balance D" N_balance
+  "Mineral N balance for a soil interval."
+  (input "NO3-Matrix-In" "NH4-Matrix-In"
+	 "NO3-Biopore-In" "NH4-Biopore-In" 
+	 "NO3-Incorp" "NH4-Incorp"
+	 "NO3-Tillage" "NH4-Tillage"
+	 "NH4-Mineralization" "DON2NH4" "DON2NO3")
+  (output "NO3-Leak-Matrix" "NH4-Leak-Matrix" 
+	  "NO3-Leak-Biopore" "NH4-Leak-Biopore"
+	  "NO3-Soil-Drain" "NH4-Soil-Drain" 
+	  "NO3-Biopore-Drain" "NH4-Biopore-Drain"
+	  "NO3-Uptake" "NH4-Uptake"
+	  "Denitrification" "N2O-Nitrification"
+	  "NO3-Immobilization")
+  (content "NO3-Soil" "NH4-Soil" "NO3-Biopores" "NH4-Biopores"))
+
+(defsummary "Soil organic-N balance D" N_balance
+  "Organic nitrogen balance for a soil interval."
+  (input "DON-Matrix-In" "DON-Biopore-In" "DON-Incorp" "DON-Tillage" 
+	 "Residuals-N" "Tillage-Org_N" "NO3-Immobilization" "Bioincorporation"
+	 "DON2SOM" "Litter-SOM")
+  (output "DON-Leak-Matrix" "DON-Leak-Biopore" "DON-Soil-Drain"
+	  "DON-Biopore-Drain" "NH4-Mineralization" "DON-Turnover")
+  (content "DON-Soil" "DON-Biopores" "AOM" "SOM" "SMB" "Buffer"))
+
+(defsummary "Soil N balance D" N_balance
+  "Nitrogen balance for a soil interval."
+  (input "DON-Matrix-In" "NO3-Matrix-In" "NH4-Matrix-In"
+	 "DON-Biopore-In" "NO3-Biopore-In" "NH4-Biopore-In" 
+	 "DON-Incorp" "NO3-Incorp" "NH4-Incorp"
+         "DON-Tillage" "NO3-Tillage" "NH4-Tillage"
+	 "Residuals-N" "Tillage-Org_N" "Bioincorporation" "Litter-SOM")
+  (output "DON-Leak-Matrix" "NO3-Leak-Matrix" "NH4-Leak-Matrix" 
+	  "DON-Leak-Biopore" "NO3-Leak-Biopore" "NH4-Leak-Biopore"
+	  "DON-Soil-Drain" "NO3-Soil-Drain" "NH4-Soil-Drain" 
+	  "DON-Biopore-Drain" "NO3-Biopore-Drain" "NH4-Biopore-Drain"
+	  "NO3-Uptake" "NH4-Uptake"
+	  "Denitrification" "N2O-Nitrification"	  )
+  (content "DON-Soil" "NO3-Soil" "NH4-Soil"
+	   "DON-Biopores" "NO3-Biopores" "NH4-Biopores"
+	   "AOM" "SOM" "SMB" "Buffer"))
+
+(deflog "Soil nitrogen D" column
+  "Nitrogen input, output, transformation and content for the soil."
+  (declare unit String "Base unit.")
+  (unit "kg N/ha")
+  (where "${colfid}soil_nitrogen.dlf")
+  (summary "Soil DON balance D" "Soil NO3- balance D" "Soil NH4+ balance D" 
+	   "Soil mineral-N balance D" "Soil organic-N balance D"
+	   "Soil N balance D")
+  (when hourly)
+  (entries ;; Year Month MDay Hour
+           (flux_top (path column "${column}" Chemistry "*" trace DON J_matrix)
+                     (documentation "\
+DON-N infiltration.")
+                     (tag "DON-Matrix-In")
+                     (handle sum)
+                     (negate true)
+                     (dimension "${unit}")
+                     (spec chemical default J_matrix))
+           (flux_top (path column "${column}" Chemistry "*" 
+			   trace DON J_tertiary)
+                     (documentation "\
+DON-N infiltration.")
+                     (tag "DON-Biopore-In")
+                     (handle sum)
+                     (negate true)
+                     (dimension "${unit}")
+                     (spec chemical default J_tertiary))
+           (flux_bottom (path column "${column}" Chemistry "*" trace DON J_matrix)
+                        (documentation "\
+DON-N leaching.")
+                        (tag "DON-Leak-Matrix")
+                        (negate true)
+                        (handle sum)
+                        (dimension "${unit}")
+                        (spec chemical default J_matrix))
+           (flux_bottom (path column "${column}" Chemistry "*"
+			      trace DON J_tertiary)
+                        (documentation "\
+DON-N leaching.")
+                        (tag "DON-Leak-Biopore")
+                        (negate true)
+                        (handle sum)
+                        (dimension "${unit}")
+                        (spec chemical default J_tertiary))
+           (interval (path column "${column}" Chemistry "*" trace 
+                           DON S_M2B)
+                     (documentation "\
+Movement of DON-N from soil matrix to biopores.")
+                     (tag "DON-to-Biopores")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_M2B))
+           (interval (path column "${column}" Chemistry "*" trace 
+                           DON S_B2M)
+                     (documentation "\
+Movement of DON-N from soil matrix to biopores.")
+                     (tag "DON-from-Biopores")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_B2M))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace DON S_soil_drain)
+                     (documentation "\
+DON-N lost to drains directly from the soil matrix.")
+                     (tag "DON-Soil-Drain")
+                     (negate true)
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_soil_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace DON S_indirect_drain)
+                     (documentation "\
+DON-N lost to drains from the soil matrix, through biopores.")
+                     (tag "DON-Indirect-Drain")
+                     (negate true)
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_indirect_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace DON S_p_drain)
+                     (documentation "\
+DON-N lost to drains from biopores.")
+                     (tag "DON-Biopore-Drain")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_p_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace DON S_external)
+                     (documentation "\
+DON-N incorporated directly into the soil.")
+                     (tag "DON-Incorp")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_external))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace DON tillage)
+                     (documentation "\
+DON-N added by tillage operations.")
+                     (tag "DON-Tillage")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default tillage))
+           (interval (path column "${column}" Chemistry "*" trace DON M)
+                     (documentation "\
+DON-N content of the soil matrix (excluding biopores).")
+                     (tag "DON-Soil")
+                     (dimension "${unit}")
+                     (spec chemical default M))
+           (interval (path column "${column}" Chemistry "*"
+			   trace DON M_tertiary)
+                     (documentation "\
+DON-N content of the biopores.")
+                     (tag "DON-Biopores")
+                     (dimension "${unit}")
+                     (spec chemical default M))
+           (interval (path column "${column}" Chemistry "*" trace DON M_error)
+                     (documentation "\
+DON-N borrowed from the future.  
+
+This may be temporarily non-zero if some process remove DON too
+fast compared to the time step.")
+                     (tag "DON-Error")
+                     (dimension "${unit}")
+                     (spec chemical default M_error))
+           (flux_top (path column "${column}" Chemistry "*" trace NO3 J_matrix)
+                     (documentation "\
+NO3-N infiltration.")
+                     (tag "NO3-Matrix-In")
+                     (handle sum)
+                     (negate true)
+                     (dimension "${unit}")
+                     (spec chemical default J_matrix))
+           (flux_top (path column "${column}" Chemistry "*" 
+			   trace NO3 J_tertiary)
+                     (documentation "\
+NO3-N infiltration.")
+                     (tag "NO3-Biopore-In")
+                     (handle sum)
+                     (negate true)
+                     (dimension "${unit}")
+                     (spec chemical default J_tertiary))
+           (flux_bottom (path column "${column}" Chemistry "*" trace NO3 J_matrix)
+                        (documentation "\
+NO3-N leaching.")
+                        (tag "NO3-Leak-Matrix")
+                        (negate true)
+                        (handle sum)
+                        (dimension "${unit}")
+                        (spec chemical default J_matrix))
+           (flux_bottom (path column "${column}" Chemistry "*"
+			      trace NO3 J_tertiary)
+                        (documentation "\
+NO3-N leaching.")
+                        (tag "NO3-Leak-Biopore")
+                        (negate true)
+                        (handle sum)
+                        (dimension "${unit}")
+                        (spec chemical default J_tertiary))
+           (interval (path column "${column}" Chemistry "*" trace 
+                           NO3 S_M2B)
+                     (documentation "\
+Movement of NO3-N from soil matrix to biopores.")
+                     (tag "NO3-to-Biopores")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_M2B))
+           (interval (path column "${column}" Chemistry "*" trace 
+                           NO3 S_B2M)
+                     (documentation "\
+Movement of NO3-N from soil matrix to biopores.")
+                     (tag "NO3-from-Biopores")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_B2M))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NO3 S_soil_drain)
+                     (documentation "\
+NO3-N lost to drains directly from the soil matrix.")
+                     (tag "NO3-Soil-Drain")
+                     (negate true)
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_soil_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NO3 S_indirect_drain)
+                     (documentation "\
+NO3-N lost to drains from the soil matrix, through biopores.")
+                     (tag "NO3-Indirect-Drain")
+                     (negate true)
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_indirect_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NO3 S_p_drain)
+                     (documentation "\
+NO3-N lost to drains from biopores.")
+                     (tag "NO3-Biopore-Drain")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_p_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NO3 S_external)
+                     (documentation "\
+NO3-N incorporated directly into the soil.")
+                     (tag "NO3-Incorp")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_external))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NO3 tillage)
+                     (documentation "\
+NO3-N added by tillage operations.")
+                     (tag "NO3-Tillage")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default tillage))
+           (interval (path column "${column}" Chemistry "*" 
+                           trace NO3 S_root)
+                     (documentation "\
+NO3-N removed by plant roots.")
+                     (tag "NO3-Uptake")
+                     (handle sum)
+		     (negate true)
+                     (dimension "${unit}")
+                     (spec chemical default S_root))
+           (interval (path column "${column}" Chemistry "*" trace NO3 M)
+                     (documentation "\
+NO3-N content of the soil matrix (excluding biopores).")
+                     (tag "NO3-Soil")
+                     (dimension "${unit}")
+                     (spec chemical default M))
+           (interval (path column "${column}" Chemistry "*"
+			   trace NO3 M_tertiary)
+                     (documentation "\
+NO3-N content of the biopores.")
+                     (tag "NO3-Biopores")
+                     (dimension "${unit}")
+                     (spec chemical default M))
+           (interval (path column "${column}" Chemistry "*" trace NO3 M_error)
+                     (documentation "\
+NO3-N borrowed from the future.  
+
+This may be temporarily non-zero if some process remove NO3 too
+fast compared to the time step.")
+                     (tag "NO3-Error")
+                     (dimension "${unit}")
+                     (spec chemical default M_error))
+           (flux_top (path column "${column}" Chemistry "*" trace NH4 J_matrix)
+                     (documentation "\
+NH4-N infiltration.")
+                     (tag "NH4-Matrix-In")
+                     (handle sum)
+                     (negate true)
+                     (dimension "${unit}")
+                     (spec chemical default J_matrix))
+           (flux_top (path column "${column}" Chemistry "*" 
+			   trace NH4 J_tertiary)
+                     (documentation "\
+NH4-N infiltration.")
+                     (tag "NH4-Biopore-In")
+                     (handle sum)
+                     (negate true)
+                     (dimension "${unit}")
+                     (spec chemical default J_tertiary))
+           (flux_bottom (path column "${column}" Chemistry "*" trace NH4 J_matrix)
+                        (documentation "\
+NH4-N leaching.")
+                        (tag "NH4-Leak-Matrix")
+                        (negate true)
+                        (handle sum)
+                        (dimension "${unit}")
+                        (spec chemical default J_matrix))
+           (flux_bottom (path column "${column}" Chemistry "*"
+			      trace NH4 J_tertiary)
+                        (documentation "\
+NH4-N leaching.")
+                        (tag "NH4-Leak-Biopore")
+                        (negate true)
+                        (handle sum)
+                        (dimension "${unit}")
+                        (spec chemical default J_tertiary))
+           (interval (path column "${column}" Chemistry "*" trace 
+                           NH4 S_M2B)
+                     (documentation "\
+Movement of NH4-N from soil matrix to biopores.")
+                     (tag "NH4-to-Biopores")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_M2B))
+           (interval (path column "${column}" Chemistry "*" trace 
+                           NH4 S_B2M)
+                     (documentation "\
+Movement of NH4-N from soil matrix to biopores.")
+                     (tag "NH4-from-Biopores")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_B2M))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NH4 S_soil_drain)
+                     (documentation "\
+NH4-N lost to drains directly from the soil matrix.")
+                     (tag "NH4-Soil-Drain")
+                     (negate true)
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_soil_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NH4 S_indirect_drain)
+                     (documentation "\
+NH4-N lost to drains from the soil matrix, through biopores.")
+                     (tag "NH4-Indirect-Drain")
+                     (negate true)
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_indirect_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NH4 S_p_drain)
+                     (documentation "\
+NH4-N lost to drains from biopores.")
+                     (tag "NH4-Biopore-Drain")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_p_drain))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NH4 S_external)
+                     (documentation "\
+NH4-N incorporated directly into the soil.")
+                     (tag "NH4-Incorp")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default S_external))
+           (interval (path column "${column}" Chemistry "*" 
+			   trace NH4 tillage)
+                     (documentation "\
+NH4-N added by tillage operations.")
+                     (tag "NH4-Tillage")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec chemical default tillage))
+           (interval (path column "${column}" Chemistry "*" 
+                           trace NH4 S_root)
+                     (documentation "\
+NH4-N removed by plant roots.")
+                     (tag "NH4-Uptake")
+                     (handle sum)
+		     (negate true)
+                     (dimension "${unit}")
+                     (spec chemical default S_root))
+           (interval (path column "${column}" Chemistry "*" trace NH4 M)
+                     (documentation "\
+NH4-N content of the soil matrix (excluding biopores).")
+                     (tag "NH4-Soil")
+                     (dimension "${unit}")
+                     (spec chemical default M))
+           (interval (path column "${column}" Chemistry "*"
+			   trace NH4 M_tertiary)
+                     (documentation "\
+NH4-N content of the biopores.")
+                     (tag "NH4-Biopores")
+                     (dimension "${unit}")
+                     (spec chemical default M))
+           (interval (path column "${column}" Chemistry "*" trace NH4 M_error)
+                     (documentation "\
+NH4-N borrowed from the future.  
+
+This may be temporarily non-zero if some process remove NH4 too
+fast compared to the time step.")
+                     (tag "NH4-Error")
+                     (dimension "${unit}")
+                     (spec chemical default M_error))
+	   (interval (path column "${column}" Chemistry "*"
+                           combine "N" reaction denitrification converted)
+                     (documentation "\
+NO3-N removed by denitrification.")
+                     (tag "Denitrification")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec reaction denitrification converted))
+	   (interval (path column "${column}" Chemistry "*"
+                           combine "N" reaction nitrification NH4)
+                     (documentation "\
+NH4-N removed by nitrification.")
+                     (tag "NH4-Nitrification")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec reaction nitrification NH4))
+	   (interval (path column "${column}" Chemistry "*"
+                           combine "N" reaction nitrification NO3)
+                     (documentation "\
+NO3-N added by nitrification.")
+                     (tag "NO3-Nitrification")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec reaction nitrification NO3))
+	   (interval (path column "${column}" Chemistry "*"
+                           combine "N" reaction nitrification N2O)
+                     (documentation "\
+NH4-N lost as N2O as a byproduct of the nitrification process.
+
+NH4-Nitrification = NO3-Nitrification + N2O-Nitrification")
+                     (tag "N2O-Nitrification")
+                     (handle sum)
+                     (dimension "${unit}")
+                     (spec reaction nitrification N2O))
+           (interval (path column "${column}" OrganicMatter "*" NH4_source)
+                     (spec organic default NH4_source)
+                     (documentation "\
+NH4-N added from mineralization of organic matter in the soil.")
+                     (tag "NH4-Mineralization")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (interval (path column "${column}" OrganicMatter "*" NO3_source)
+                     (spec organic default NO3_source)
+                     (documentation "\
+NO3-N removed by the organic matter turnover processes.")
+                     (tag "NO3-Immobilization")
+		     (negate true)
+                     (handle sum)
+                     (dimension "${unit}"))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover DON)
+                     (spec reaction DOM_turnover DON)
+                     (documentation "\
+DON-N removed by the DOM turnover processes.")
+                     (tag "DON-Turnover")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover SON)
+                     (spec reaction DOM_turnover SON)
+                     (documentation "\
+Stationary-N added by the DOM turnover processes.")
+                     (tag "DON2SOM")
+                     (handle sum)
+                     (dimension "${unit}"))
+	   (number (path column "${column}" Litter mulch SON_gen)
+		   (spec litter mulch SON_gen)
+		   (documentation "\
+N added to SOM directly from litter layer.")
+		   (tag "Litter-SOM")
+		   (dimension "${unit}")
+		   (handle sum))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover NH4)
+                     (spec reaction DOM_turnover NH4)
+                     (documentation "\
+NH4 added by the DOM turnover processes.")
+                     (tag "DON2NH4")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (interval (path column "${column}" Chemistry "*"
+			   combine "DOM" reaction DOM_turnover NO3)
+                     (spec reaction DOM_turnover NO3)
+                     (documentation "\
+NO3 added by the DOM turnover processes.")
+                     (tag "DON2NO3")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (interval (path column "${column}" residuals_N_soil)
+                     (spec column default residuals_N_soil)
+                     (handle sum)
+                     (documentation "\
+Nitrogen in organic matter added to the soil from roots.")
+                     (tag "Residuals-N")
+                     (dimension "${unit}"))
+           (interval (path column "${column}" OrganicMatter "*" tillage_N_soil)
+                     (spec organic default tillage_N_soil)
+                     (handle sum)
+                     (documentation "\
+Nitrogen in organic matter added to the soil by tillage operations.")
+                     (tag "Tillage-Org_N")
+                     (dimension "${unit}"))
+           (interval (path column "${column}" OrganicMatter "*"
+                           Bioincorporation N_added)
+                     (spec fixed Bioincorporation N_added)
+                     (documentation "\
+Nitrogen in organic matter added to the soil by bioincroporation.
+
+This includes dead leaves removed from the soil surface by earthworms.")
+                     (tag "Bioincorporation")
+                     (handle sum)
+                     (dimension "${unit}"))
+           (interval (documentation "\
+Total amount of nitrogen in added organic matter in the soil.
+
+AOM consists of fertilizer and plant residuals that has not yet been 
+decomposed.")
+                     (tag "AOM")
+                     (path column "${column}" OrganicMatter "*" am "*" om "*" N)
+                     (spec AOM component N)
+                     (dimension "${unit}"))
+           (interval (documentation "\
+Total amount of nitrogen in soil humus.
+
+This consist of dead organic matter that can no longer be traced
+to its origins.")
+                     (tag "SOM")
+                     (path column "${column}" OrganicMatter "*" som "*" N)
+                     (spec SOM component N)
+                     (dimension "${unit}"))
+           (interval (documentation "\
+Nitrogen in soil microbiological organisms.
+
+The living part of the soil (excluding plant roots).")
+                     (tag "SMB")
+                     (path column "${column}" OrganicMatter "*" smb "*" N)
+                     (spec SMB component N)
+                     (dimension "${unit}"))
+           (interval (documentation "\
+Nitrogen in humus added by fertilizer but not yet available for turnover.
+
+This is usually zero.")
+                     (tag "Buffer")
+                     (path column "${column}" OrganicMatter "*" buffer N)
+                     (spec organic default buffer N)
+                     (dimension "${unit}"))))
+
+;;; log.mulch.dai ends here.
+

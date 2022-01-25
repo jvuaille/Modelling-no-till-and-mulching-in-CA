@@ -1,0 +1,129 @@
+
+(input file "soil_column.dai")
+(input file "management_irrigate.dai")
+(input file "log-mulch.dai")
+(input file "log_field_chem.dai")
+
+(defchemical DOC2 DOC
+  (litter_diffusion_rate 1.50 [h^-1])) 
+
+(defchemical DON2 DON
+  (litter_diffusion_rate 1.50 [h^-1]))
+
+(defreaction DOM_turnover2 DOM_turnover
+  "Default values."
+  (turnover rate 1.49 [d^-1]) ; (Garnier et al., 2003) table 1 (T=15 degC) 1.49/1.5)
+  (max_N_depletion rate 0.1 [h^-1])
+  (where 1) ; Eaten by SMB2.
+  (efficiency 62 [%]) ; 62% is assimilated by SMB2 (Garnier et al., 2003) table 1 (T=15 degC)
+  (C_per_N_goal 10 [g C/g N])	; (Garnier et al., 2003) table 2
+  (DON_name DON2)
+  (DOC_name DOC2))
+
+
+(defchemistry DOM2 DOM
+  (trace DON2 DOC2)
+  (reaction DOM_turnover2))
+
+(deflitter exp_mulch mulch
+  (density 25.27 [g/L]) ; (Aslam et al. 2018 p.57)
+  (particle_density 1000 [kg/m^3])
+  (decompose_height 0.6 [cm]) ; = 0.20 * 3 cm (Aslam et al. 2018 p.57 and p.59)
+  (soil_height -5 [cm]) ; (Aslam et al. 2018 p.59)
+  (water_capacity 2.44 [L/kg]) ; (Iqbal et al. 2013 p.289)
+  (specific_AI 3.9 [m^2/kg DM]) ; from ref manual (Millet) 
+  (extinction_coefficent 0.45 []) ; from ref manual (Millet)
+  (Theta_res 0.044 []) ;  (Iqbal et al. 2013 p. 291)
+  (factor_exch 0.7 []) ; calibrated
+  (alpha 1.6 []); calibrated
+  (Si 7 [%]) ; calibrated
+  (retention (exp (k 0.116 [cm^-1]))) ; calibrated      
+                                          
+  (decompose_SMB_pool 1)
+  (decompose_SMB_KM 0.000455 [g C/cm^3]); (Garnier et al., 2003)
+  (DON_name DON2)
+  (DOC_name DOC2)
+  (T_ref 15 [dg C])
+  (SMB_ref 0.000455 [g C/cm^3]) ;
+  )
+
+(defcolumn common default
+  (Litter exp_mulch)
+  (Chemistry multi (combine DOM2 N glyphosate "s-metolachlor")) 
+			
+ (Groundwater (flux 0 [cm/h])) 
+ (OrganicMatter original
+ 	(init (end -25))
+	(Bioincorporation (R_max 0 [g DM/m^2/h])))
+ (Movement vertical
+    (matrix_water richards)
+    (Tertiary none)
+    (Geometry 
+		(zplus 
+		-1 -2 -3 -4 -5 -6 -7 -8 -9 -10 -11 -12 
+		-13 -14 -15 -16 -17 -18 -19 -20 -22 -24 -25 [cm])))
+(SoilWater (Theta 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 
+ 		0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 0.35 [])))			 				
+ 	
+(defcolumn colum_exp common
+  (Soil 
+        (MaxRootingDepth 25 [cm])
+        (horizons (-5.00  top_layer)
+                  (-25.00 bottom_layer))))                                   
+;; Weather data
+(defweather lab combine
+  (entry ((use Precip) (source table (file "hourly_precip.dwf")))
+  ((source table (file "T_GR_RH_WS.dwf")))
+))
+  
+(defprogram Sim_col_exp Daisy
+
+  ;; Column to use.
+  (column colum_exp) 
+
+  (time 2017 12 31)
+  (stop 2018 03 31) 
+  
+  (manager activity "Sim_col_exp_LFR") ; 2 irrigation regimes, high and infrequent, low and frequent
+	 
+(weather lab)
+  
+  (log_prefix "soil_col_exp-LFR-")
+  (log_time_columns year month mday hour)
+  (output harvest
+  	("Weather" (when daily) (column colum_exp))
+	("Field water" (when daily) (column colum_exp))
+	
+	("Field_chemical" (when hourly) (column colum_exp) (chemical "glyphosate"))
+	("Field chemical" (when hourly) (column colum_exp) (chemical "glyphosate"))
+
+	("Surface Chemicals" (when hourly) (column colum_exp) (chemical "glyphosate")
+			     (where "surface-glyphosate.dlf"))	
+			     
+	("Surface Chemicals" (when hourly) (column colum_exp) (chemical "s-metolachlor")
+			     (where "surface-s-metolachlor.dlf"))
+		     
+	("Field_chemical" (when hourly) (column colum_exp) (chemical "s-metolachlor"))
+	("Field chemical" (when hourly) (column colum_exp) (chemical "s-metolachlor"))
+
+	("Surface Water Balance" (when hourly) (column colum_exp)) 
+	("Surface water" (when hourly) (column colum_exp))
+  	("Soil water" (when hourly) (column colum_exp))
+	("Soil Water Content" (when hourly) (column colum_exp))	 
+	("Soil Water Potential (pF)" (when hourly) (column colum_exp))	  	
+    	("Soil Water Potential" (when hourly) (column colum_exp))
+    	(checkpoint (when (at 2017 12 31 0)))
+ 	Mulch 
+ 	"DOM h factor" "DOM T factor" "DOM N factor"
+ 	"Field nitrogen D"
+ 	"Soil nitrogen D"
+ 	  ("Field chemical" (chemical DOC) (unit [Mg/ha]))
+ 	  ("Field chemical" (chemical DON) (unit [kg/ha]))
+ 	  ("Soil chemical" (chemical DOC) (unit [Mg/ha]))
+ 	  ("Soil chemical" (chemical DON) (unit [kg/ha]))
+ 	  ("Field chemical" (chemical N) (unit [kg/ha]))
+	  ("Field chemical" (chemical MIN) (unit [kg/ha]))))
+
+
+(run Sim_col_exp)
+

@@ -1,0 +1,20 @@
+(deflog "Field_chemical" chemical
+  (declare unit String "Base unit.")
+  (unit "g/ha")
+  (where "${colfid}field-${chemfid}.dlf")
+  (when hourly)
+  (entries (interval (from 0 [cm]) (to -5 [cm])
+  	             (path column "${column}" Chemistry "*" 
+                           trace "${chemical}" M)
+                     (tag "Soil 0-5")
+                     (dimension "${unit}")
+                     (spec chemical default M))
+  	   (interval (from -5 [cm]) (to -25 [cm])
+  	             (path column "${column}" Chemistry "*" 
+                           trace "${chemical}" M)
+                     (tag "Soil 5-25")
+                     (dimension "${unit}")
+                     (spec chemical default M))                    
+                     
+                     ))
+                     
