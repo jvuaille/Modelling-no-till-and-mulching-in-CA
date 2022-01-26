@@ -1,0 +1,278 @@
+ 
+  (path &old "../.")
+  (input file "soil_4155.dai" )
+  (input file "pesticides_4155.dai" )
+  (input file "management.dai")
+  (input file "climate.dai")
+  (input file "log-mulch.dai")
+  (input file "log_field_chem.dai")
+  (defchemical DOC2 DOC 
+    (litter_diffusion_rate 1.5 [h^-1])) ; max. value in calibration
+  (defchemical DON2 DON 
+    (litter_diffusion_rate 1.5 [h^-1]))
+    
+  (defreaction DOM_turnover2 DOM_turnover "Default values." 
+    (turnover rate 0.99 [d^-1]) ; Garnier et al. (2003) table 1 (T=15 degC) adjsuted to 10 deg C
+    (max_N_depletion rate 0.1 [h^-1]) ; the maximum amount of mineral nitrogen immobilized by microbes to degrade mulch (avoid ocmplete depletion)
+    (where 1) ; Eaten by SMB2.
+    (efficiency 62 [%]) ; 62% is assimilated by SMB2, Garnier et al. (2003) table 1
+    (C_per_N_goal 10 [g C/g N]) ; Garnier et al. (2003) table 2
+    (DON_name DON2)
+    (DOC_name DOC2) )
+    
+    
+  (defchemistry DOM2 DOM 
+    (trace DON2 DOC2)
+    (reaction DOM_turnover2) )
+    
+  (deflitter exp_mulch mulch 
+    (particle_density 1000 [kg/m^3]) ; makes Daisy calculate grav. Theta
+    (density 15 [g/L]) ; average measurements
+    (decompose_height 0.6 [cm]) ; 20% of the height (average at 3 cm) (Aslam et al. 2018 p.57 and p.59)
+    (soil_height -5 [cm]) ; (Aslam et al. 2018 p.59)
+    (water_capacity 5.59 [L/kg]) ; average measurements
+    (specific_AI 3.9 [m^2/kg DM]) ; Macena et al. (2003) for millet
+    (extinction_coefficent 0.45 []) ; Macena et al. (2003) for millet
+    (Theta_res 0.034 []) ; average measurements
+    (factor_exch 0.15 []) ; calibrated
+    (alpha 1.9 []) ; calibrated
+    (Si 3.1 [%]) ; calibrated
+    (retention 
+      (exp 
+        (k 0.076 [cm^-1]) )) ; calibrated
+    (vapor_flux_factor 0 [])
+    (decompose_SMB_pool 1)
+    (decompose_SMB_KM 0.000364 [g C/cm^3]); 280 mg/kg soil Iqbal et al. (2013)
+    (DON_name DON2)
+    (DOC_name DOC2)
+    (SMB_ref 0.000364 [g C/cm^3]) ) ; gives a factor 2 in Daisy to Michaelis-Menten ratio
+    
+  (defcolumn common default 
+    (Litter exp_mulch)
+    (Chemistry multi 
+      (combine DOM2 N pest_test))
+    (OrganicMatter original 
+      (init 
+        (end -25)))
+    (Bioclimate original 
+      (pet deBruin87))
+    (Groundwater aquitard 
+      (pressure_table const -180 [cm])
+      (K_aquitard 0.010 [cm/h])
+      (Z_aquitard 200 [cm]) ))
+      
+  (defcolumn drain_CA common 
+    (Movement vertical 
+      (matrix_water richards)
+      (Geometry 
+        (zplus -1 -2 -3 -3.5 -4 -5 -6 -7 -8 -9 -10 -11 -12 -13 -14 -15 -16 -17 -18 -19 -20 -22 -24 -25 -26 -28 -30 -35 -40 -50 -60 -75 -90 -100 -120 -125 -150 -170 -200 [cm]))
+      (Tertiary 
+        (biopores 
+          (active_msg none)
+          (classes 
+            ("matrix_25")
+            ("matrix_120_CA")
+            ("matrix_60")
+            ("drain_0_CA") ) )) ))
+            
+  (defcolumn "CA_drain_O" drain_CA 
+    (Soil 
+      (MaxRootingDepth 150 [cm])
+      (border -3.5 -30 -200 [cm])
+      (horizons 
+        (-3.5 CA1_O)
+        (-25 CA2_O)
+        (-30 CA3_O)
+        (-120 "Rorrendegaard Bt")
+        (-200 "Rorrendegaard C") ) ))
+ 
+  (defcolumn "CA_drain_I" drain_CA 
+    (Soil 
+      (MaxRootingDepth 150 [cm])
+      (border -3.5 -30 -200 [cm])
+      (horizons 
+        (-3.5 CA1_I)
+        (-25 CA2_I)
+        (-30 CA3_I)
+        (-120 "Rorrendegaard Bt")
+        (-200 "Rorrendegaard C") ) ))
+        
+  (defprogram SimExp Daisy 
+    (column "CA_drain_O" "CA_drain_I")
+    (time 3867 09 01)
+    (activate_output 
+      (after 3870 09 1))
+    (stop 3875 09 1)
+    (stop_when 
+      (walltime 
+        (minutes 30)))
+        
+    (manager activity "sim_UA")
+    
+    (weather CPH)
+    
+    (log_prefix "UA_CA-")
+    (log_time_columns year month mday hour)
+    (output harvest 
+      ("Surface Water Balance" 
+        (when daily)
+        (column CA_drain_O) )
+      ("Soil water" 
+        (from 0 [cm])
+        (to -3.5 [cm])
+        (where "CA_drain_O_soil-water-0-3half.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil water" 
+        (from -3.5 [cm])
+        (to -30 [cm])
+        (where "CA_drain_O_soil-water-3half-30.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil water" 
+        (from -30 [cm])
+        (to -200 [cm])
+        (where "CA_drain_O_soil-water-30-200.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil water" 
+        (from 0 [cm])
+        (to -200 [cm])
+        (where "CA_drain_O_soil-water-0-200.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil water" 
+        (from 0 [cm])
+        (to -30 [cm])
+        (where "CA_drain_O_soil-water-0-30.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from 0 [cm])
+        (to -3.5 [cm])
+        (where "CA_drain_O_soil-pest-0-3half.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from -3.5 [cm])
+        (to -30 [cm])
+        (where "CA_drain_O_soil-pest-3half-30.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from -30 [cm])
+        (to -200 [cm])
+        (where "CA_drain_O_soil-pest-30-200.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from 0 [cm])
+        (to -200 [cm])
+        (where "CA_drain_O_soil-pest-0-200.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from 0 [cm])
+        (to -30 [cm])
+        (where "CA_drain_O_soil-pest-0-30.dlf")
+        (column CA_drain_O)
+        (when daily) )
+      ("Soil Water Potential" 
+        (when daily)
+        (column CA_drain_O) )
+      ("Drain pesticides" 
+        (column CA_drain_O)
+        (where "CA_drain_O_drain_pest_test.dlf") )
+      ("Spray pesticides" 
+        (column CA_drain_O))
+      ("Field_chemical" 
+        (column CA_drain_O)
+        (chemical "pest_test") )
+      (Mulch 
+        (column CA_drain_O))
+
+      ("Surface Water Balance" 
+        (when daily)
+        (column CA_drain_I) )
+      ("Soil water" 
+        (from 0 [cm])
+        (to -3.5 [cm])
+        (where "CA_drain_I_soil-water-0-3half.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil water" 
+        (from -3.5 [cm])
+        (to -30 [cm])
+        (where "CA_drain_I_soil-water-3half-30.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil water" 
+        (from -30 [cm])
+        (to -200 [cm])
+        (where "CA_drain_I_soil-water-30-200.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil water" 
+        (from 0 [cm])
+        (to -200 [cm])
+        (where "CA_drain_I_soil-water-0-200.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil water" 
+        (from 0 [cm])
+        (to -30 [cm])
+        (where "CA_drain_I_soil-water-0-30.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from 0 [cm])
+        (to -3.5 [cm])
+        (where "CA_drain_I_soil-pest-0-3half.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from -3.5 [cm])
+        (to -30 [cm])
+        (where "CA_drain_I_soil-pest-3half-30.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from -30 [cm])
+        (to -200 [cm])
+        (where "CA_drain_I_soil-pest-30-200.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from 0 [cm])
+        (to -200 [cm])
+        (where "CA_drain_I_soil-pest-0-200.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil chemical" 
+        (chemical pest_test)
+        (from 0 [cm])
+        (to -30 [cm])
+        (where "CA_drain_I_soil-pest-0-30.dlf")
+        (column CA_drain_I)
+        (when daily) )
+      ("Soil Water Potential" 
+        (when daily)
+        (column CA_drain_I) )
+      ("Drain pesticides" 
+        (column CA_drain_I)
+        (where "CA_drain_I_drain_pest_test.dlf") )
+      ("Spray pesticides" 
+        (column CA_drain_I))
+      ("Field_chemical" 
+        (column CA_drain_I)
+        (chemical "pest_test") ) ) )
+  (run SimExp) 
