@@ -1,0 +1,46 @@
+  (defchemical DOC2 DOC 
+    (litter_diffusion_rate 1.5 [h^-1])) ; max. value in calibration
+  (defchemical DON2 DON 
+    (litter_diffusion_rate 1.5 [h^-1]))
+    
+  (defreaction DOM_turnover2 DOM_turnover "Default values." 
+    (turnover rate 0.99 [d^-1]) ; Garnier et al. (2003) table 1 (T=15 degC) adjsuted to 10 deg C
+    (max_N_depletion rate 0.1 [h^-1]) ; the maximum amount of mineral nitrogen immobilized by microbes to degrade mulch (avoid ocmplete depletion)
+    (where 1) ; Eaten by SMB2.
+    (efficiency 62 [%]) ; 62% is assimilated by SMB2 (Garnier et al., 2003) table 1 (T=15 degC)
+    (C_per_N_goal 10 [g C/g N])	; (Garnier et al., 2003) table 2
+    (DON_name DON2)
+    (DOC_name DOC2))
+    
+    
+  (defchemistry DOM2 DOM 
+    (trace DON2 DOC2)
+    (reaction DOM_turnover2) )
+    
+(deflitter exp_mulch mulch
+  (density 25.27 [g/L]) ; (Aslam et al. 2018 p.57)
+  (particle_density 1000 [kg/m^3])
+  (decompose_height 0.6 [cm]) ; = 0.20 * 3 cm (Aslam et al. 2018 p.57 and p.59)
+  (soil_height -5 [cm]) ; (Aslam et al. 2018 p.59)
+  (water_capacity 2.44 [L/kg]) ; (Iqbal et al. 2013 p.289)
+  (specific_AI 3.9 [m^2/kg DM]) ; from ref manual (Millet) 
+  (extinction_coefficent 0.45 []) ; from ref manual (Millet)
+  (Theta_res 0.044 []) ;  (Iqbal et al. 2013 p. 291)
+  (factor_exch 0.7 []) ; calibrated
+  (alpha 1.6 []); calibrated
+  (Si 7 [%]) ; calibrated
+  (retention (exp (k 0.116 [cm^-1]))) ; calibrated      
+                                          
+  (decompose_SMB_pool 1)
+  (decompose_SMB_KM 0.000455 [g C/cm^3]); (Garnier et al., 2003)
+  (DON_name DON2)
+  (DOC_name DOC2)
+  (T_ref 15 [dg C])
+  (SMB_ref 0.000455 [g C/cm^3]) ;
+  )
+    
+  (defcolumn common default 
+    (Litter exp_mulch)
+    (Chemistry multi 
+      (combine DOM2 N pest_test)))
+ 
